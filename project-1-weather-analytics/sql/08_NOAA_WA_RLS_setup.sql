@@ -1,0 +1,82 @@
+-- Analytics data security setup (RLS)
+
+USE WAREHOUSE NOAA_WH;
+USE ROLE NOAA_ENGINEER;
+USE DATABASE NOAA_WEATHER_DB;
+USE SCHEMA SECURITY;
+
+--Mapping Table
+
+CREATE OR REPLACE TABLE SECURITY.STATE_ACCESS_MAP (
+role_name STRING,
+state STRING
+);
+
+INSERT INTO SECURITY.STATE_ACCESS_MAP VALUES
+('NOAA_ANALYST_WEST', 'Alaska'),
+('NOAA_ANALYST_WEST', 'Arizona'),
+('NOAA_ANALYST_WEST', 'California'),
+('NOAA_ANALYST_WEST', 'Colorado'),
+('NOAA_ANALYST_WEST', 'Hawaii'),
+('NOAA_ANALYST_WEST', 'Idaho'),
+('NOAA_ANALYST_WEST', 'Montana'),
+('NOAA_ANALYST_WEST', 'Nevada'),
+('NOAA_ANALYST_WEST', 'New Mexico'),
+('NOAA_ANALYST_WEST', 'Oregon'),
+('NOAA_ANALYST_WEST', 'Utah'),
+('NOAA_ANALYST_WEST', 'Washington'),
+('NOAA_ANALYST_WEST', 'Wyoming'),
+('NOAA_ANALYST_CENTRAL', 'Arkansas'),
+('NOAA_ANALYST_CENTRAL', 'Illinois'),
+('NOAA_ANALYST_CENTRAL', 'Indiana'),
+('NOAA_ANALYST_CENTRAL', 'Iowa'),
+('NOAA_ANALYST_CENTRAL', 'Kansas'),
+('NOAA_ANALYST_CENTRAL', 'Kentucky'),
+('NOAA_ANALYST_CENTRAL', 'Louisiana'),
+('NOAA_ANALYST_CENTRAL', 'Michigan'),
+('NOAA_ANALYST_CENTRAL', 'Minnesota'),
+('NOAA_ANALYST_CENTRAL', 'Mississippi'),
+('NOAA_ANALYST_CENTRAL', 'Missouri'),
+('NOAA_ANALYST_CENTRAL', 'Nebraska'),
+('NOAA_ANALYST_CENTRAL', 'North Dakota'),
+('NOAA_ANALYST_CENTRAL', 'Ohio'),
+('NOAA_ANALYST_CENTRAL', 'Oklahoma'),
+('NOAA_ANALYST_CENTRAL', 'South Dakota'),
+('NOAA_ANALYST_CENTRAL', 'Tennessee'),
+('NOAA_ANALYST_CENTRAL', 'Texas'),
+('NOAA_ANALYST_CENTRAL', 'Wisconsin'),
+('NOAA_ANALYST_EAST', 'Alabama'),
+('NOAA_ANALYST_EAST', 'Connecticut'),
+('NOAA_ANALYST_EAST', 'Delaware'),
+('NOAA_ANALYST_EAST', 'Florida'),
+('NOAA_ANALYST_EAST', 'Georgia'),
+('NOAA_ANALYST_EAST', 'Maine'),
+('NOAA_ANALYST_EAST', 'Maryland'),
+('NOAA_ANALYST_EAST', 'Massachusetts'),
+('NOAA_ANALYST_EAST', 'New Hampshire'),
+('NOAA_ANALYST_EAST', 'New Jersey'),
+('NOAA_ANALYST_EAST', 'New York'),
+('NOAA_ANALYST_EAST', 'North Carolina'),
+('NOAA_ANALYST_EAST', 'Pennsylvania'),
+('NOAA_ANALYST_EAST', 'Rhode Island'),
+('NOAA_ANALYST_EAST', 'South Carolina'),
+('NOAA_ANALYST_EAST', 'Vermont'),
+('NOAA_ANALYST_EAST', 'Virginia'),
+('NOAA_ANALYST_EAST', 'West Virginia');
+
+
+--Row Access Policy
+CREATE OR REPLACE ROW ACCESS POLICY SECURITY.STATE_RLP
+AS (p_state STRING) RETURNS BOOLEAN ->
+   'NOAA_ANALYST' = CURRENT_ROLE() 
+OR 'NOAA_ENGINEER' = CURRENT_ROLE()
+OR EXISTS (
+	SELECT 1
+	FROM SECURITY.STATE_ACCESS_MAP
+	WHERE role_name = CURRENT_ROLE()
+	AND state = p_state );
+
+
+--Apply Policy to ANALYTICS View
+ALTER VIEW ANALYTICS.AVG_TEMP_BY_STATE
+ADD ROW ACCESS POLICY SECURITY.STATE_RLP ON (state);
