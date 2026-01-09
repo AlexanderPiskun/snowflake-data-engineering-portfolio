@@ -28,7 +28,7 @@ SELECT
 FROM RAW.NOAA_WEATHER_METRICS_TS;
 
 --Create a canonical staging view
-CREATE OR REPLACE VIEW STAGING.V_STG_WEATHER_METRICS AS
+CREATE OR REPLACE VIEW V_STG_WEATHER_METRICS AS
 SELECT
   noaa_weather_station_id AS station_id,
   variable_name           AS metric_name,
@@ -36,3 +36,13 @@ SELECT
   value::FLOAT            AS metric_value,
   CURRENT_TIMESTAMP       AS load_ts
 FROM RAW.NOAA_WEATHER_METRICS_TS;
+
+--Data Quality Checks
+--STAGING – Type & Range Validation
+
+-- Maual Invalid metric values
+SELECT COUNT(*) AS invalid_metrics
+FROM STG_WEATHER_METRICS
+WHERE metric_value IS NULL
+   OR metric_value < -100
+   OR metric_value > 200;
