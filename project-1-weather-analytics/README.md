@@ -533,7 +533,7 @@ This approach is:
 
 ---
 
-SQL files Order execution:
+SQL files execution order:
 01.. -> 10..
 
 📌 **Author:** Alexander Piskun  
