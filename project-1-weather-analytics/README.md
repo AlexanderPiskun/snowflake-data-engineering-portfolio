@@ -50,7 +50,6 @@ This provides strong operational confidence and aligns with Snowflake Horizon’
 - Mirrors real enterprise Snowflake deployments
 
 ### 🧠 Design Rationale Summary
-|-------------------|---------------------------|-----------------------------------------------|
 |`Area`				|`Design Choice`	    	|`Reason`									    |
 |-------------------|---------------------------|-----------------------------------------------|
 |`Data Quality`		|`DMFs`			 			|`Native, scalable, Horizon-integrated`			|
@@ -58,7 +57,6 @@ This provides strong operational confidence and aligns with Snowflake Horizon’
 |`Access Control`	|`RLS`						|`Secure analytics without data duplication`	|
 |`Catalog`			|`Horizon-ready metadata`	|`Discoverability & trust`						|
 |`Lineage`			|`Snowsight`				|`Built-in impact & dependency analysis`		|
-|-------------------|---------------------------------------------------------------------------|
 
 ---
 
