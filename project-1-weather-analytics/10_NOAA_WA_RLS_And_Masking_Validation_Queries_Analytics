@@ -1,0 +1,192 @@
+--Masking Validation Queries (ANALYTICS)
+USE ROLE NOAA_ANALYST_WEST;
+
+SELECT *
+FROM ANALYTICS.V_WEATHER_DAILY_SECURED
+LIMIT 10;
+
+--Expected:
+--station_id → masked
+--the rest of columns → visible
+
+
+--RLS Validation Queries (ANALYTICS)
+
+USE ROLE NOAA_ENGINEER;
+
+SELECT role_name, COUNT(*) AS states_count
+FROM SECURITY.STATE_ACCESS_MAP
+GROUP BY role_name
+ORDER BY role_name;
+
+--Expected:
+--WEST → 13
+--CENTRAL → 19
+--EAST → 19
+
+
+USE ROLE NOAA_ENGINEER;
+SELECT state, COUNT(*)
+FROM ANALYTICS.V_DIM_STATION_SECURED
+WHERE COUNTRY = 'United States'
+GROUP BY state;
+--Expected all 51 US states rows
+
+USE ROLE NOAA_ANALYST_WEST; 
+SELECT state, COUNT(*)
+FROM ANALYTICS.V_DIM_STATION_SECURED
+WHERE COUNTRY = 'United States'
+GROUP BY state;
+--Expected 13 WEST US states only
+
+USE ROLE NOAA_ANALYST_EAST; 
+SELECT state, COUNT(*)
+FROM ANALYTICS.V_DIM_STATION_SECURED
+WHERE COUNTRY = 'United States'
+GROUP BY state;
+--Expected 19 EAST US states only
+
+USE ROLE NOAA_ANALYST_CENTRAL;
+SELECT state, COUNT(*)
+FROM ANALYTICS.V_DIM_STATION_SECURED
+WHERE COUNTRY = 'United States'
+GROUP BY state;
+--Expected 19 CENTRAL US states only
+
+
+--PII
+USE ROLE NOAA_ANALYST_WEST;
+
+SELECT station_id, observation_date, metric_name
+FROM ANALYTICS.V_WEATHER_DAILY_SECURED
+LIMIT 5;
+--Expected:
+--station_id → ***MASKED***
+--the rest → visible
+
+STATION_ID	OBSERVATION_DATE	METRIC_NAME					
+***MASKED***	2006-04-08		Precipitation				
+***MASKED***	2008-03-02		Fastest 5-Minute Wind		
+***MASKED***	2010-02-19		Average Relative Humidity	
+***MASKED***	2005-10-01		Precipitation				
+***MASKED***	2005-12-24		Minimum Temperature		  
+
+SELECT station_id, station_name, state, country
+FROM ANALYTICS.V_DIM_STATION_SECURED
+LIMIT 5;
+--Expected:
+--station_name and country → ***MASKED***
+--station_id and state → visible
+
+STATION_ID	STATION_NAME	STATE			COUNTRY
+USC00270390	***MASKED***	New Hampshire	***MASKED***
+US1RIPR0143	***MASKED***	Rhode Island	***MASKED***
+TH000048330	***MASKED***					***MASKED***
+ARM00087506	***MASKED***					***MASKED***
+MXN00023150	***MASKED***					***MASKED***
+
+
+USE ROLE NOAA_ENGINEER;
+SELECT station_id, observation_date, metric_name
+FROM ANALYTICS.V_WEATHER_DAILY_SECURED
+LIMIT 5;
+--Expected:
+--all columns → visible
+STATION_ID	OBSERVATION_DATE	METRIC_NAME
+USC00256135	2006-04-08			Precipitation
+USW00053862	2008-03-02			Fastest 5-Minute Wind
+USW00014936	2010-02-19			Average Relative Humidity
+USW00012926	2005-10-01			Precipitation
+USC00323287	2005-12-24			Minimum Temperature
+
+SELECT station_id, station_name, state, country
+FROM ANALYTICS.V_DIM_STATION_SECURED
+LIMIT 5;
+--Expected:
+--all columns → visible
+STATION_ID	STATION_NAME		STATE			COUNTRY
+USC00270390	BARTLETT			New Hampshire	United States
+US1RIPR0143	PROVIDENCE 2.0 ENE	Rhode Island	United States
+TH000048330	PHRAE				Thailand
+ARM00087506	MALARGUE			Argentina
+MXN00023150	SABAN				Mexico
+
+
+--Engineer Role — FULL VISIBILITY (Unmasked)
+USE ROLE NOAA_ENGINEER;
+SELECT
+  station_id,
+  avg_metric_value
+FROM ANALYTICS.V_WEATHER_DAILY_SECURED
+LIMIT 5;
+--Expected:
+--5 rows with all columns unmasked:
+STATION_ID	AVG_METRIC_VALUE
+USC00256135	0.5
+USW00053862	7.2
+USW00014936	81
+USW00012926	0
+USC00323287	-4.4
+
+
+--Analyst Role — PII Masked, Domain Allowed
+USE ROLE NOAA_ANALYST_WEST;
+SELECT
+  station_id,
+  avg_metric_value
+FROM ANALYTICS.V_WEATHER_DAILY_SECURED
+LIMIT 5;
+--Expected:
+--5 rows with station_id column masked:
+STATION_ID		AVG_METRIC_VALUE
+***MASKED***	0.5
+***MASKED***	7.2
+***MASKED***	81
+***MASKED***	0
+***MASKED***	-4.4
+
+--RLS + Masking Combined Example
+USE ROLE NOAA_ANALYST_WEST;    -- Expected 13 ROWS WITH MASKED station_id 
+USE ROLE NOAA_ANALYST_EAST;    -- Expected 19 ROWS WITH MASKED station_id 
+USE ROLE NOAA_ANALYST_CENTRAL; -- Expected 19 ROWS WITH MASKED station_id 
+USE ROLE NOAA_ENGINEER;        -- Expected 62990 ROWS WITH ALLUNMASKED COLUMNS 
+SELECT 
+  state,
+  station_id,
+  COUNT(*) AS rows_visible
+FROM ANALYTICS.V_DIM_STATION_SECURED
+WHERE COUNTRY = 'United States'
+GROUP BY state, station_id;
+
+
+--Validate Table-Level Tags
+USE ROLE accountadmin;
+
+--Validate both tags together 
+SELECT
+  object_database,
+  object_schema,
+  object_name,
+  column_name,
+  tag_name,
+  tag_value
+FROM SNOWFLAKE.ACCOUNT_USAGE.TAG_REFERENCES
+WHERE tag_name IN ('PII_CLASS', 'DATA_DOMAIN')
+ORDER BY object_schema, object_name, column_name;
+--Expected 5 rows:
+OBJECT_DATABASE	OBJECT_SCHEMA	OBJECT_NAME			COLUMN_NAME	TAG_NAME	TAG_VALUE
+NOAA_WEATHER_DB	DATA_MART		DIM_STATION			COUNTRY		PII_CLASS	LOW
+NOAA_WEATHER_DB	DATA_MART		DIM_STATION			STATE		PII_CLASS	NONE
+NOAA_WEATHER_DB	DATA_MART		DIM_STATION	S		TATION_NAME	PII_CLASS	HIGH
+NOAA_WEATHER_DB	DATA_MART		FACT_WEATHER_DAILY	STATION_ID	PII_CLASS	LOW
+NOAA_WEATHER_DB	DATA_MART		FACT_WEATHER_DAILY				DATA_DOMAIN	WEATHER
+
+--Faster (Immediate) Validation Option
+SHOW TAGS IN DATABASE NOAA_WEATHER_DB;
+--Expected:
+--2 ROWS
+created_on						name		database_name	schema_name	owner		comment		allowed_values							owner_role_type
+2026-01-08 11:17:24.773 -0800	DATA_DOMAIN	NOAA_WEATHER_DB	SECURITY	NOAA_ENGINEER			["WEATHER","WATER_SUPPLY","REFERENCE"]	ROLE
+2026-01-08 11:17:20.102 -0800	PII_CLASS	NOAA_WEATHER_DB	SECURITY	NOAA_ENGINEER			["NONE","LOW","HIGH"]					ROLE
+
+
