@@ -1,6 +1,13 @@
 --Database, Schemas & Warehouse
+--Horizon Catalog automatically ingests COMMENTS + TAGS. 
 
 USE ROLE ACCOUNTADMIN;
+
+CREATE WAREHOUSE IF NOT EXISTS NOAA_WH
+  WAREHOUSE_SIZE = 'XSMALL'
+  AUTO_SUSPEND = 60
+  AUTO_RESUME = TRUE;
+
 CREATE DATABASE IF NOT EXISTS NOAA_WEATHER_DB;
 USE DATABASE NOAA_WEATHER_DB;
 
@@ -9,8 +16,27 @@ CREATE SCHEMA IF NOT EXISTS STAGING;
 CREATE SCHEMA IF NOT EXISTS DATA_MART;
 CREATE SCHEMA IF NOT EXISTS ANALYTICS;
 CREATE SCHEMA IF NOT EXISTS SECURITY;
+CREATE SCHEMA IF NOT EXISTS MONITORING;
 
-CREATE WAREHOUSE IF NOT EXISTS NOAA_WH
-  WAREHOUSE_SIZE = 'XSMALL'
-  AUTO_SUSPEND = 60
-  AUTO_RESUME = TRUE;  
+-- Governance: DATABASE & SCHEMA METADATA
+
+COMMENT ON DATABASE NOAA_WEATHER_DB
+IS 'NOAA Weather Analytics Platform - governed Snowflake data engineering project';
+
+COMMENT ON SCHEMA RAW
+IS 'Raw materialized NOAA marketplace data (read-only source layer)';
+
+COMMENT ON SCHEMA STAGING
+IS 'Cleansed and conformed staging layer';
+
+COMMENT ON SCHEMA DATA_MART
+IS 'Curated analytics-ready fact and dim tables';
+
+COMMENT ON SCHEMA ANALYTICS
+IS 'Consumption layer with RLS and masking applied';
+
+COMMENT ON SCHEMA MONITORING
+IS 'Data quality monitoring layer';
+
+COMMENT ON SCHEMA SECURITY
+IS 'Data qovernanace and security layer';
