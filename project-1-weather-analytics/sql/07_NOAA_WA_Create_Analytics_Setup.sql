@@ -7,13 +7,14 @@ USE SCHEMA ANALYTICS;
 -- 1. Avg Temperature by State
 CREATE OR REPLACE VIEW AVG_TEMP_BY_STATE AS
 SELECT
+  s.country,
   s.state ,
   AVG(f.avg_metric_value) AS avg_temperature
 FROM DATA_MART.FACT_WEATHER_DAILY f
 JOIN DATA_MART.DIM_STATION s
   ON f.station_id = s.station_id
 WHERE f.metric_name = 'Temperature at Observation Time'
-GROUP BY s.state;
+GROUP BY s.country,s.state;
 
 --2. Temperature Trend Over Time
 CREATE OR REPLACE VIEW TEMP_TREND AS
@@ -51,3 +52,16 @@ WHERE metric_name = 'Temperature at Observation Time'
 GROUP BY station_id
 ORDER BY avg_temp DESC
 LIMIT 10;
+
+--6+7. security boundary views
+---Contain no transformations
+---Exist solely to attach security policies
+---Act as the contract between platform and consumers
+
+CREATE OR REPLACE VIEW ANALYTICS.V_WEATHER_DAILY_SECURED AS
+SELECT *
+FROM DATA_MART.FACT_WEATHER_DAILY;
+
+CREATE OR REPLACE VIEW ANALYTICS.V_DIM_STATION_SECURED AS
+SELECT *
+FROM DATA_MART.DIM_STATION;
