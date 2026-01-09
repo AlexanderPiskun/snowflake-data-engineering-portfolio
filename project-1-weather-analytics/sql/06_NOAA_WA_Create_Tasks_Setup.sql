@@ -1,4 +1,4 @@
--- Tasks (Orchestration)
+-- Data ingestion flow tasks (Orchestration)
 USE WAREHOUSE NOAA_WH;
 USE ROLE NOAA_ENGINEER;
 USE DATABASE NOAA_WEATHER_DB;
