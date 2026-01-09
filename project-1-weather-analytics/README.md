@@ -1,8 +1,5 @@
 # 🌨️ Snowflake NOAA Weather Data Pipeline
 
-## 📌 SQL files Order execution: 
-   01_NOAA_WA_.. -> 08_NOAA_WA_..
-
 ## 📌 Project Overview
 This project demonstrates a **production‑grade Snowflake data integration and analytics pipeline** built using **public NOAA datasets from the Snowflake Marketplace**. The goal is to showcase hands‑on experience with:
 
@@ -16,7 +13,13 @@ The project is designed as a **portfolio‑ready reference implementation** for 
 
 ---
 
-## 🧱 Architecture Overview
+## 🧱 Architecture and Design Overview
+
+### 🔗 Data Lineage with Snowsight
+
+End-to-end data lineage is automatically captured and visualized using Snowsight.
+
+#### Lineage flows across:
 
 ```
 SNOWFLAKE_PUBLIC_DATA_FREE (Marketplace Share)
@@ -26,17 +29,36 @@ SNOWFLAKE_PUBLIC_DATA_FREE (Marketplace Share)
         STAGING (Cleaned & Typed)
               ↓
       DATA_MART (Facts & Dims & Analytics)
-	            ↓
-      ANALYTICS (Business-facing views + RLS)
-	            ↓
+	          ↓
+      ANALYTICS (Secure, RLS-enabled views)
+	          ↓
       Consumers (Roles)
 ```
+
+#### Snowsight enables:
+
+- Column-level lineage tracking
+- Impact analysis for schema changes
+- Upstream/downstream dependency visibility
+
+This provides strong operational confidence and aligns with Snowflake Horizon’s trust & observability goals.
 
 ### Why This Architecture?
 - Clear separation of concerns
 - Supports incremental processing
 - RBAC‑safe and task‑friendly
 - Mirrors real enterprise Snowflake deployments
+
+### 🧠 Design Rationale Summary
+|-------------------|---------------------------|-----------------------------------------------|
+|`Area`				|`Design Choice`	    	|`Reason`									    |
+|-------------------|---------------------------|-----------------------------------------------|
+|`Data Quality`		|`DMFs`			 			|`Native, scalable, Horizon-integrated`			|
+|`Security`			|`Tag-based masking`		|`Centralized, reusable, zero-query changes`	|
+|`Access Control`	|`RLS`						|`Secure analytics without data duplication`	|
+|`Catalog`			|`Horizon-ready metadata`	|`Discoverability & trust`						|
+|`Lineage`			|`Snowsight`				|`Built-in impact & dependency analysis`		|
+|-------------------|---------------------------------------------------------------------------|
 
 ---
 
@@ -150,7 +172,7 @@ FROM RAW.NOAA_WEATHER_METRICS_TS;
 - Aggregated facts and dims
 
 
-Key objects:
+#### Key objects:
 - `DATA_MART.FACT_WEATHER_INPUT`
 - `DATA_MART.FACT_WEATHER_DAILY`
 - `DATA_MART.DIM_STATION`
@@ -158,7 +180,7 @@ Key objects:
 ---
 ### 🟩 ANALYTICS Layer
 **Purpose:** Analytics Layer (Consumption Layer) with Row-Level Security (RLS)
-The ANALYTICS schema represents the **semantic / consumption layer** of the platform. 
+The `ANALYTICS` schema represents the `semantic / consumption layer` of the platform. 
 It exposes **read-only views** built on top of curated DATA_MART tables and is designed for:
 
 - BI tools (Power BI, Tableau, Looker, etc.)
@@ -167,7 +189,7 @@ It exposes **read-only views** built on top of curated DATA_MART tables and is d
 
 This layer intentionally contains **no physical tables** — only views and security policies.
 
-Key objects:
+#### Key objects:
 - `ANALYTICS.AVG_TEMP_BY_STATE`
 - `ANALYTICS.TEMP_VARIABILITY`
 - `ANALYTICS.EXTREME_TEMP_DAYS`
@@ -203,7 +225,7 @@ Example guard:
 WHEN SYSTEM$STREAM_HAS_DATA('FACT_WEATHER_INPUT_STREAM')
 ```
 
-This ensures:
+#### This ensures:
 - No unnecessary warehouse usage
 - Exactly‑once processing semantics
 
@@ -224,6 +246,125 @@ This ensures:
 The project strictly follows **least-privilege principles** and enforces a **clear separation between physical data models and business consumption**.
 
 ---
+
+## 🔐 Governance, Security & Data Observability
+
+### 🌐 Horizon Catalog Integration
+This project is designed to align with Snowflake Horizon Catalog best practices, enabling data discoverability, trust, and governance across the entire analytics lifecycle.
+
+#### Key Capabilities
+
+- Object-level metadata (databases, schemas, tables, views)
+- Column-level data quality metrics
+- Tag-based classification (PII, data domain)
+- Built-in lineage visualization via Snowsight
+
+All layers `(RAW, STAGING, DATA_MART, ANALYTICS)` are structured to be catalog-friendly, allowing Snowflake Horizon to surface lineage, ownership, freshness, and quality signals.
+
+### 📊 Data Quality Monitoring with Data Metric Functions (DMFs)
+
+The project implements Snowflake-native Data Quality Monitoring using Data Metric Functions (DMFs) instead of custom SQL-only checks.
+
+**MONITORING Schema**
+`MONITORING`
+ ├── `DATA_QUALITY_RESULTS`          -- Custom quality results table
+ ├── `TASK_DQ_FACT_WEATHER`          -- Legacy SQL-based DQ task
+ └── `DMF-based monitoring`          -- Snowflake-managed quality metrics
+
+### 📊DMF-Based Quality Checks
+
+DMFs are associated directly with critical analytical tables such as:
+
+**DATA_MART.FACT_WEATHER_DAILY** and **DATA_MART.DIM_STATION**
+
+#### Examples of implemented quality dimensions:
+
+- Completeness (NULL_COUNT on critical metrics)
+- Validity (BLANK_COUNT on dimension attributes)
+- Uniqueness (DUPLICATE_COUNT on natural keys)
+- Volume (ROW_COUNT trends)
+
+DMFs are scheduled using **DATA_METRIC_SCHEDULE**, and results are automatically stored in Snowflake’s internal quality event store and surfaced in Snowsight → Catalog → Data Quality.
+
+#### This approach provides:
+
+- Centralized, queryable quality metrics
+- UI-driven monitoring and trend analysis
+- Seamless Horizon Catalog integration
+
+
+### 🏷 Object Tagging & Tag-Based Data Masking
+The project uses Snowflake Object Tags as first-class governance primitives.
+
+**SECURITY Schema**
+
+All security-related objects are isolated in a dedicated schema:
+
+`SECURITY`
+ ├── `PII_CLASS`                -- Column-level PII classification tag
+ ├── `DATA_DOMAIN`              -- Table-level data domain tag
+ ├── `MASKING POLICIES`         -- Tag-driven masking rules
+ └── `ROW ACCESS POLICIES`      -- Regional access control
+
+#### PII Classification (PII_CLASS)
+
+Columns containing sensitive data are tagged with:
+
+  `LOW`
+  `HIGH`
+
+Masking behavior is automatically enforced using tag-based masking policies, without modifying queries or views.
+
+#### Benefits:
+
+- Centralized PII control
+- Policy reuse across schemas
+- Separation of security logic from data logic
+
+#### Data Domain Classification (DATA_DOMAIN)
+
+Entire tables are tagged using:
+```sql
+ALTER TABLE <table> SET TAG SECURITY.DATA_DOMAIN = 'WEATHER_ANALYTICS';
+```
+
+#### This enables:
+
+- Logical grouping of datasets
+- Domain-based governance
+- Easier discovery and auditability in Horizon Catalog
+
+### 🔐 Security & Governance Model
+
+The project follows **enterprise-grade Snowflake governance principles**:
+
+### Role-Based Access Control (RBAC)
+
+`NOAA_ENGINEER`  – pipeline development & operations
+`NOAA_ANALYST_*` – analytics access (region-based)
+`ACCOUNTADMIN`   – security and infrastructure
+
+### Row-Level Security (RLS)
+
+Row Access Policies restrict data access by `U.S. region (WEST / CENTRAL / EAST)` based on analyst role membership.
+
+#### This ensures:
+
+- Least-privilege access
+- No data duplication
+- Secure multi-tenant analytics
+
+### Tag-Based Masking + RLS Combined
+
+The project demonstrates how:
+
+- RLS controls “which rows you see”
+- Masking controls “what values you see”
+
+Both are enforced transparently at query time.
+
+
+A dedicated schema is used for data observability artifacts:
 
 ## 🧭 Formal Design Decision: ANALYTICS Schema as the Consumption Layer
 
@@ -379,15 +520,23 @@ Given these constraints, the RAW layer was intentionally designed using:
 - Downstream incremental processing using **STREAMS + TASKS** on locally owned tables
 
 This approach is:
+- ✅ Production-grade governance
+- ✅ Native Snowflake observability
 - ✅ RBAC-safe
+- ✅ Security-by-design architecture
 - ✅ Task-compatible
 - ✅ Transparent and auditable
+- ✅ Horizon Catalog alignment
 - ✅ Aligned with real-world enterprise Snowflake practices
+
 
 > The decision to materialize Marketplace data into RAW tables is a **deliberate architectural choice**, 
   reflecting a deep understanding of Snowflake security, task execution semantics, and shared data limitations — not a workaround.
 
 ---
+
+SQL files Order execution:
+01.. -> 10..
 
 📌 **Author:** Alexander Piskun  
 📜 **Certification:** Snowflake SnowPro Core  
