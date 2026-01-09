@@ -4,10 +4,9 @@ USE ROLE NOAA_ENGINEER;
 USE DATABASE NOAA_WEATHER_DB;
 USE SCHEMA RAW;
 
--- Load marketplace snapshot into local tables. 
+-- Load marketplace snapshot into local table. 
 -- All this to allow data upload tasks (to be created in step 06) to read directly from tables in your account, 
 -- no cross-account privileges required.
-
 CREATE OR REPLACE TABLE NOAA_WEATHER_METRICS_TS AS
 SELECT *
 FROM SNOWFLAKE_PUBLIC_DATA_FREE.PUBLIC_DATA_FREE.NOAA_WEATHER_METRICS_TIMESERIES;
@@ -19,3 +18,15 @@ FROM SNOWFLAKE_PUBLIC_DATA_FREE.PUBLIC_DATA_FREE.NOAA_WEATHER_STATION_INDEX;
 CREATE OR REPLACE TABLE NOAA_WATER_SUPPLY_TS AS
 SELECT *
 FROM SNOWFLAKE_PUBLIC_DATA_FREE.PUBLIC_DATA_FREE.NOAA_NWRFC_WATER_SUPPLY_TIMESERIES;
+
+--Data Quality Checks examples
+-- RAW – Volume & Null Checks
+
+-- RAW table completeness
+SELECT COUNT(*) AS total_rows
+FROM NOAA_WEATHER_METRICS_TS;
+
+-- RAW table Null Checks
+SELECT COUNT(*) AS null_station_ids
+FROM NOAA_WEATHER_METRICS_TS
+WHERE noaa_weather_station_id IS NULL;
