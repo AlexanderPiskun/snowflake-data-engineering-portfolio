@@ -13,6 +13,22 @@ The project is designed as a **portfolio‑ready reference implementation** for 
 
 ---
 
+## 📌 Project Deployment
+
+### Unix/Linux/MacOS:
+This is a Shell script. To make it "one-click," you must first give it permission to run.
+
+To set up (run once in terminal): chmod +x deploy_project.sh
+
+> snowsql -f NOAA_WA_Deploy_All.sql -o output_file=./full_execution_details.log
+
+### Windows:
+Run it by simply double-clicking it in your folder
+
+> NOAA_WA_Deploy_All.bat
+
+---
+
 ## 🧱 Architecture and Design Overview
 
 ### 🔗 Data Lineage with Snowsight
@@ -533,8 +549,6 @@ This approach is:
 
 ---
 
-SQL files execution order:
-01.. -> 10..
 
 📌 **Author:** Alexander Piskun  
 📜 **Certification:** Snowflake SnowPro Core  
