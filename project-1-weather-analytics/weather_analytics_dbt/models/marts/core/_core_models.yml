@@ -1,0 +1,37 @@
+
+version: '1.0.0'
+
+models:
+  - name: dim_station
+    description: >
+      Conformed station dimension containing geographic and descriptive
+      attributes for NOAA weather stations.
+
+    columns:
+      - name: station_key
+        description: Surrogate key generated from station_id.
+        tests:
+          - not_null
+          - unique
+
+      - name: station_id
+        description: Natural business key assigned by NOAA.
+        tests:
+          - not_null
+
+  - name: fct_weather_daily
+    description: >
+      Daily aggregated weather metrics by station, used for analytics
+      and downstream BI consumption.
+
+    columns:
+      - name: weather_key
+        description: Surrogate key for station and observation date.
+        tests:
+          - not_null
+          - unique
+
+      - name: observation_date
+        tests:
+          - not_null
+
