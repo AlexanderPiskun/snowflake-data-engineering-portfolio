@@ -1,0 +1,16 @@
+version: '1.0.0'
+
+sources:
+  - name: noaa_raw
+    database: noaa_weather_db
+    schema: raw
+    tables:
+      - name: noaa_weather_metrics_ts
+        loaded_at_field: date
+        freshness:
+          warn_after: {count: 1, period: day}
+
+      - name: noaa_weather_station_index
+
+      - name: noaa_water_supply_ts
+        loaded_at_field: date
