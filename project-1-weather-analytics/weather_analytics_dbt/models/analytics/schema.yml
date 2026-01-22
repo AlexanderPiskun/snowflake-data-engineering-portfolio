@@ -1,0 +1,84 @@
+version: '1.0.0'
+
+models:
+
+  - name: avg_temp_by_state
+    description: >
+      Aggregated view showing the average observed temperature by country and state.
+      Used for regional climate analysis and high-level reporting.
+    columns:
+      - name: country
+        description: Country where the weather station is located.
+        tests:
+          - not_null
+
+      - name: state
+        description: State or province where the weather station is located.
+        tests:
+          - not_null
+
+      - name: avg_temperature
+        description: Average daily temperature across all stations in the state.
+        tests:
+          - not_null
+
+
+  - name: temp_trend
+    description: >
+      Daily temperature trend over time, calculated as the average temperature
+      across all stations for each observation date.
+    columns:
+      - name: observation_date
+        description: Date of weather observation.
+        tests:
+          - not_null
+          - unique
+
+      - name: avg_temp
+        description: Average temperature across all stations for the given date.
+        tests:
+          - not_null
+
+
+  - name: temp_variability
+    description: >
+      Measures temperature variability per station using standard deviation
+      of observed average daily temperature.
+    columns:
+      - name: station_id
+        description: Unique identifier of the weather station.
+        tests:
+          - not_null
+          - unique
+
+      - name: temperature_variability
+        description: Standard deviation of temperature values for the station.
+        tests:
+          - not_null
+
+
+  - name: extreme_temp_days
+    description: >
+      Identifies extreme temperature events where the observed average
+      temperature exceeds a defined threshold (40 degrees).
+    columns:
+      - name: weather_key
+        description: Surrogate key identifying the weather observation.
+        tests:
+          - not_null
+          - unique
+
+      - name: station_id
+        description: Weather station where the extreme temperature was recorded.
+        tests:
+          - not_null
+
+      - name: observation_date
+        description: Date when the extreme temperature was observed.
+        tests:
+          - not_null
+
+      - name: temperature_value
+        description: Observed temperature value exceeding the extreme threshold.
+        tests:
+          - not_null
