@@ -40,7 +40,7 @@ End-to-end data lineage is automatically captured and visualized using Snowsight
 ```
 SNOWFLAKE_PUBLIC_DATA_FREE (Marketplace Share)
               ↓
-          RAW (Local Tables)
+          RAW (Local Transient Tables - Low-cost data landing bufeer)
               ↓
         STAGING (Cleaned & Typed)
               ↓
@@ -121,12 +121,12 @@ Snowflake tasks execute **server‑side** and require **direct access to all und
 
 ---
 
-### ✅ Solution: Materialize RAW Layer as Local Tables
+### ✅ Solution: Materialize RAW Layer as Local Transient Tables (acts as a low-cost buffer to safe on Fail Safe costs)
 
-To ensure reliable, RBAC‑safe execution, the RAW layer was redesigned to use **local tables** populated from Marketplace data:
+To ensure reliable, RBAC‑safe execution, the RAW layer was redesigned to use **local transinet tables** populated from Marketplace data:
 
 ```sql
-CREATE OR REPLACE TABLE RAW.NOAA_WEATHER_METRICS_TS AS
+CREATE OR REPLACE TRANSIENT TABLE RAW.NOAA_WEATHER_METRICS_TS AS
 SELECT *
 FROM SNOWFLAKE_PUBLIC_DATA_FREE.PUBLIC_DATA_FREE.NOAA_WEATHER_METRICS_TIMESERIES;
 ```
